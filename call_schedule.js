@@ -1,4 +1,7 @@
 // call.js
+if (!localStorage.getItem('token')) {
+    window.location.href = "login.html";
+}
 
 // DOM Elements
 const callForm = document.getElementById('callForm');
