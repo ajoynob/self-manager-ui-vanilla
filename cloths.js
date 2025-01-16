@@ -1,4 +1,7 @@
 // cloths.js
+if (!localStorage.getItem('token')) {
+    window.location.href = "login.html";
+} 
 
 // DOM Elements
 const clothForm = document.getElementById('clothForm');
