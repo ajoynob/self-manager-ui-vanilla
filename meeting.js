@@ -1,4 +1,7 @@
 // meeting.js
+if (!localStorage.getItem('token')) {
+    window.location.href = "login.html";
+}
 
 // DOM Elements
 const meetingForm = document.getElementById('meetingForm');
