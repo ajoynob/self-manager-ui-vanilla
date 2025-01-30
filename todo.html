@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo:Self Manager</title>
+  <script src="todo.js" defer></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.0/dist/full.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+
+  <!-- Navbar -->
+  <div class="navbar bg-white shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <!-- Brand -->
+      <div class="navbar-start">
+        <a href="index.html" class="text-xl font-bold">Self Manager</a>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <div class="flex-none lg:hidden">
+        <button class="btn btn-square btn-ghost" onclick="toggleMenu()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-6 h-6 stroke-current">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Menu Items -->
+      <div id="navbarMenu" class="hidden lg:flex lg:items-center lg:space-x-3 navbar-center">
+        <a href="index.html" class="btn btn-ghost">Home</a>
+        <a href="users.html" class="btn btn-ghost">Users</a>
+        <a href="contacts.html" class="btn btn-ghost">Contacts</a>
+        <a href="call_schedule.html" class="btn btn-ghost">Call Schedule</a>
+        <a href="meeting.html" class="btn btn-ghost">Meeting</a>
+        <a href="todo.html" class="btn btn-ghost">Todo</a>
+        <a href="inventory.html" class="btn btn-ghost">Inventory</a>
+        <a href="groceries.html" class="btn btn-ghost">Groceries</a>
+        <a href="books.html" class="btn btn-ghost">Books</a>
+        <a href="medicine.html" class="btn btn-ghost">Medicine</a>
+        <a href="cloths.html" class="btn btn-ghost">Cloths</a>
+        <a href="researches.html" class="btn btn-ghost">Researches</a>
+        <a href="photos.html" class="btn btn-ghost">Photos</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Menu Dropdown -->
+  <div id="mobileMenu" class="hidden lg:hidden bg-white shadow-md">
+    <ul class="menu menu-vertical p-4 space-y-2">
+      <li><a href="index.html" class="btn btn-ghost w-full">Home</a></li>
+      <li><a href="users.html" class="btn btn-ghost w-full">Users</a></li>
+      <li><a href="contacts.html" class="btn btn-ghost w-full">Contacts</a></li>
+      <li><a href="call_schedule.html" class="btn btn-ghost w-full">Call Schedule</a></li>
+      <li><a href="meeting.html" class="btn btn-ghost w-full">Meeting</a></li>
+      <li><a href="todo.html" class="btn btn-ghost w-full">Todo</a></li>
+      <li><a href="inventory.html" class="btn btn-ghost w-full">Inventory</a></li>
+      <li><a href="groceries.html" class="btn btn-ghost w-full">Groceries</a></li>
+      <li><a href="books.html" class="btn btn-ghost w-full">Books</a></li>
+      <li><a href="medicine.html" class="btn btn-ghost w-full">Medicine</a></li>
+      <li><a href="cloths.html" class="btn btn-ghost w-full">Cloths</a></li>
+      <li><a href="researches.html" class="btn btn-ghost w-full">Researches</a></li>
+      <li><a href="photos.html" class="btn btn-ghost w-full">Photos</a></li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <main class="container mx-auto flex-grow p-4">
+    <h1 class="text-2xl font-bold mb-4 text-center">Todo</h1>
+
+    <!-- Alert Box for Validation Errors -->
+    <div id="alertBox" class="hidden alert alert-error mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span id="alertMessage">Error! Task failed successfully.</span>
+    </div>
+
+    <!-- Form Section -->
+    <div class="card bg-white p-4 shadow-lg mb-6">
+      <h2 class="text-lg font-semibold mb-2">Add / Edit Todo</h2>
+      <form id="todoForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="hidden" id="todoId">
+        <input type="text" id="title" placeholder="Title" class="input input-bordered w-full">
+        <input type="text" id="description" placeholder="Description" class="input input-bordered w-full">
+        <input type="text" id="due_date" placeholder="Due Date" class="input input-bordered w-full">
+        <select id="priority" class="select select-bordered w-full">
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>
+        <select id="status" class="select select-bordered w-full">
+          <option value="Pending">Pending</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
+        <button type="submit" class="btn btn-primary w-full md:col-span-2">Save Todo</button>
+      </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="card bg-white p-4 shadow-lg">
+      <h2 class="text-lg font-semibold mb-2">Todo List</h2>
+      <div class="overflow-x-auto">
+        <table class="table w-full">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Description</th>
+              <th>Due Date</th>
+              <th>Priority</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="todoTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white text-center py-4 mt-6">
+    <p>&copy; 2024 Self Manager. All Rights Reserved.</p>
+  </footer>
+
+  <!-- JavaScript for Navbar Toggle -->
+  <script>
+    function toggleMenu() {
+      const mobileMenu = document.getElementById('mobileMenu');
+      mobileMenu.classList.toggle('hidden');
+    }
+  </script>
+
+</body>
+</html>
