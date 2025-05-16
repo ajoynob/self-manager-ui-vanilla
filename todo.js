@@ -1,72 +1,73 @@
 // todo.js
-if (!localStorage.getItem('token')) {
-    window.location.href = "login.html";
+if (!localStorage.getItem("token")) {
+  window.location.href = "login.html";
 }
 
 // DOM Elements
-const todoForm = document.getElementById('todoForm');
-const todoTableBody = document.getElementById('todoTableBody');
-const todoIdHiddenInput = document.getElementById('todoId');
-const titleInput = document.getElementById('title');
-const descriptionInput = document.getElementById('description');
-const due_dateInput = document.getElementById('due_date');
-const priorityInput = document.getElementById('priority');
-const statusInput = document.getElementById('status');
-// Alert Box
-const alertBox = document.getElementById('alertBox');
-const alertMessage = document.getElementById('alertMessage');
+const todoForm = document.getElementById("todoForm");
+const todoTableBody = document.getElementById("todoTableBody");
+const todoIdHiddenInput = document.getElementById("todoId");
+const titleInput = document.getElementById("title");
+const descriptionInput = document.getElementById("description");
+const due_dateInput = document.getElementById("due_date");
+const priorityInput = document.getElementById("priority");
+const statusInput = document.getElementById("status");
+const alertBox = document.getElementById("alertBox");
+const alertMessage = document.getElementById("alertMessage");
 
-// State(like in memory db)
-let todos = [];
+// Base API URL
+const API_URL = "http://localhost:3000/todos";
 
 // Display Alert
 function showAlert(message) {
-    alertMessage.innerText = message;
-    alertBox.classList.remove('hidden');
+  alertMessage.innerText = message;
+  alertBox.classList.remove("hidden");
 }
 
 // Hide Alert
 function hideAlert() {
-    alertBox.classList.add('hidden');
-    alertMessage.innerText = '';
+  alertBox.classList.add("hidden");
+  alertMessage.innerText = "";
 }
 
 // Validation Function
 function validateForm() {
-    hideAlert(); // Clear previous alerts
-    let isValid = true;
-    let errors = [];
+  hideAlert();
+  let isValid = true;
+  let errors = [];
 
-    // title is required
-    if (!titleInput.value.trim()) {
-        isValid = false;
-        errors.push("title is required.");
-        titleInput.classList.add('input-error');
-    } else {
-        titleInput.classList.remove('input-error');
-    }
+  if (!titleInput.value.trim()) {
+    isValid = false;
+    errors.push("title is required.");
+    titleInput.classList.add("input-error");
+  } else {
+    titleInput.classList.remove("input-error");
+  }
 
-    // due_date is required
-    if (!due_dateInput.value.trim()) {
-        isValid = false;
-        errors.push("Due date is required.");
-        due_dateInput.classList.add('input-error');
-    } else {
-        due_dateInput.classList.remove('input-error');
-    }
+  if (!due_dateInput.value.trim()) {
+    isValid = false;
+    errors.push("Due date is required.");
+    due_dateInput.classList.add("input-error");
+  } else {
+    due_dateInput.classList.remove("input-error");
+  }
 
-    if (!isValid) {
-        showAlert(errors.join(' '));
-    }
+  if (!isValid) {
+    showAlert(errors.join(" "));
+  }
 
-    return isValid;
+  return isValid;
 }
 
-// Read: Load todos
-function loadTodos() {
-    todoTableBody.innerHTML = '';
-    todos.forEach((todo, index) => {
-        const row = `
+// Load todos from API
+async function loadTodos() {
+  try {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    todoTableBody.innerHTML = "";
+    data.forEach((todo) => {
+      todo.id = todo.$loki;
+      const row = `
       <tr>
         <td>${todo.title}</td>
         <td>${todo.description}</td>
@@ -79,92 +80,136 @@ function loadTodos() {
         </td>
       </tr>
     `;
-        todoTableBody.insertAdjacentHTML('beforeend', row);
+      todoTableBody.insertAdjacentHTML("beforeend", row);
     });
+  } catch (error) {
+    showAlert("Failed to load groceries.");
+    console.error(error);
+  }
 }
 
-// Create: Add a New todo
-function createTodo() {
-    if (!validateForm()) return;
+// Create a New todo via API
+async function createTodo() {
+  if (!validateForm()) return;
 
-    const newTodo = {
-        id: Date.now(),
-        title: titleInput.value,
-        description: descriptionInput.value,
-        due_date: due_dateInput.value,
-        priority: priorityInput.value,
-        status: statusInput.value,
-    };
-    console.log("Saving new todo", newTodo);
-    todos.push(newTodo);
-    resetForm();
-    loadTodos();
-    hideAlert();
-}
+  const newTodo = {
+    id: Date.now(),
+    title: titleInput.value,
+    description: descriptionInput.value,
+    due_date: due_dateInput.value,
+    priority: priorityInput.value,
+    status: statusInput.value,
+  };
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newTodo),
+    });
 
-// Update: Update Existing todo
-function updateTodo() {
-    if (!validateForm()) return;
-
-    const id = todoIdHiddenInput.value;
-    const index = todos.findIndex(todo => todo.id == id);
-
-    if (index !== -1) {
-        todos[index] = {
-            id: id,
-            title: titleInput.value,
-            description: descriptionInput.value,
-            due_date: due_dateInput.value,
-            priority: priorityInput.value,
-            status: statusInput.value,
-        };
+    if (!response.ok) {
+      throw new Error("Failed to create todo.");
     }
 
     resetForm();
     loadTodos();
     hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
-// Delete: Remove a todo
-function deleteTodo(index) {
-    todos.splice(index, 1);
+// Update Existing todo via API
+async function updateTodo() {
+  if (!validateForm()) return;
+
+  const id = todoIdHiddenInput.value;
+  const updatedTodo = {
+    title: titleInput.value,
+    description: descriptionInput.value,
+    due_date: due_dateInput.value,
+    priority: priorityInput.value,
+    status: statusInput.value,
+  };
+  try {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedTodo),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update todo.");
+    }
+
+    resetForm();
     loadTodos();
     hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
-// Edit: Populate Form with todo Data for Editing
-function editTodo(index) {
-    const todo = todos[index];
-    console.log(todo);
+// Delete todo via API
+async function deleteTodo(id) {
+  if (!confirm("Are you sure you want to delete this todo?")) return;
+
+  try {
+    const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete todo.");
+    }
+
+    loadTodos();
+    hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
+}
+// Edit Todo: Fetch Data by ID and Populate Formg
+async function editTodo(id) {
+  try {
+    const response = await fetch(`${API_URL}/${id}`);
+    if (!response.ok) {
+      throw new Error("Failed to load todo.");
+    }
+
+    const todo = await response.json();
+    todo.id = todo.$loki;
+
     todoIdHiddenInput.value = todo.id;
     titleInput.value = todo.title;
     descriptionInput.value = todo.description;
     due_dateInput.value = todo.due_date;
-    priorityInput.value = todo.priority;
-    statusInput.value = todo.status;
+    priorityInput.value = todo.priority || "";
+    statusInput.value = todo.status || "";
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
 // Reset Form
 function resetForm() {
-    todoIdHiddenInput.value = '';
-    titleInput.value = '';
-    descriptionInput.value = '';
-    due_dateInput.value = '';
-    priorityInput.value = '';
-    statusInput.value = '';
+  todoIdHiddenInput.value = "";
+  titleInput.value = "";
+  descriptionInput.value = "";
+  due_dateInput.value = "";
+  priorityInput.value = "";
+  statusInput.value = "";
 
-    titleInput.classList.remove('input-error');
-    due_dateInput.classList.remove('input-error');
+  titleInput.classList.remove("input-error");
+  due_dateInput.classList.remove("input-error");
 }
 
 // Form Submission Handler
-todoForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (todoIdHiddenInput.value) {
-        updateTodo();
-    } else {
-        createTodo();
-    }
+todoForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (todoIdHiddenInput.value) {
+    updateTodo();
+  } else {
+    createTodo();
+  }
 });
 
 // Initial Load
