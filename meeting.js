@@ -1,86 +1,83 @@
 // meeting.js
-if (!localStorage.getItem('token')) {
-    window.location.href = "login.html";
+if (!localStorage.getItem("token")) {
+  window.location.href = "login.html";
 }
 
 // DOM Elements
-const meetingForm = document.getElementById('meetingForm');
-const meetingTableBody = document.getElementById('meetingTableBody');
-const meetingIdHiddenInput = document.getElementById('meetingId');
-const titleInput = document.getElementById('title');
-const descriptionInput = document.getElementById('description');
-const dateInput = document.getElementById('date');
-const timeInput = document.getElementById('time');
-const locationInput = document.getElementById('location');
-const participantsInput = document.getElementById('participants');
-const statusInput = document.getElementById('status')
-const notesInput = document.getElementById('notes')
-// Alert Box
-const alertBox = document.getElementById('alertBox');
-const alertMessage = document.getElementById('alertMessage');
+const meetingForm = document.getElementById("meetingForm");
+const meetingTableBody = document.getElementById("meetingTableBody");
+const meetingIdHiddenInput = document.getElementById("meetingId");
+const titleInput = document.getElementById("title");
+const descriptionInput = document.getElementById("description");
+const dateInput = document.getElementById("date");
+const timeInput = document.getElementById("time");
+const locationInput = document.getElementById("location");
+const participantsInput = document.getElementById("participants");
+const statusInput = document.getElementById("status");
+const notesInput = document.getElementById("notes");
+const alertBox = document.getElementById("alertBox");
+const alertMessage = document.getElementById("alertMessage");
 
-// State(like in memory db)
-let meetings = [];
+// Base API URL
+const API_URL = "http://localhost:3000/meetings";
 
 // Display Alert
 function showAlert(message) {
-    alertMessage.innerText = message;
-    alertBox.classList.remove('hidden');
+  alertMessage.innerText = message;
+  alertBox.classList.remove("hidden");
 }
 
 // Hide Alert
 function hideAlert() {
-    alertBox.classList.add('hidden');
-    alertMessage.innerText = '';
+  alertBox.classList.add("hidden");
+  alertMessage.innerText = "";
 }
 
 // Validation Function
 function validateForm() {
-    hideAlert(); // Clear previous alerts
-    let isValid = true;
-    let errors = [];
+  hideAlert();
+  let isValid = true;
+  let errors = [];
 
-    // title is required
-    if (!titleInput.value.trim()) {
-        isValid = false;
-        errors.push("Title is required.");
-        titleInput.classList.add('input-error');
-    } else {
-        titleInput.classList.remove('input-error');
-    }
+  if (!titleInput.value.trim()) {
+    isValid = false;
+    errors.push("Title is required.");
+    titleInput.classList.add("input-error");
+  } else {
+    titleInput.classList.remove("input-error");
+  }
 
-    // date is required
-    if (!dateInput.value.trim()) {
-        isValid = false;
-        errors.push("Date is required.");
-        dateInput.classList.add('input-error');
-    } else {
-        dateInput.classList.remove('input-error');
-    }
+  if (!dateInput.value.trim()) {
+    isValid = false;
+    errors.push("Date is required.");
+    dateInput.classList.add("input-error");
+  } else {
+    dateInput.classList.remove("input-error");
+  }
 
-    // time is required
-    if (!timeInput.value.trim()) {
-        isValid = false;
-        errors.push("Time is required.");
-        timeInput.classList.add('input-error');
-    } else {
-        timeInput.classList.remove('input-error');
-    }
+  if (!timeInput.value.trim()) {
+    isValid = false;
+    errors.push("Time is required.");
+    timeInput.classList.add("input-error");
+  } else {
+    timeInput.classList.remove("input-error");
+  }
 
-    //Notes is optional
-
-    if (!isValid) {
-        showAlert(errors.join(' '));
-    }
-
-    return isValid;
+  if (!isValid) {
+    showAlert(errors.join(" "));
+  }
+  return isValid;
 }
 
-// Read: Load meetings
-function loadMeetings() {
-    meetingTableBody.innerHTML = '';
-    meetings.forEach((meeting, index) => {
-        const row = `
+// Load meetings from API
+async function loadMeetings() {
+  try {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    meetingTableBody.innerHTML = "";
+    data.forEach((meeting) => {
+      meeting.id = meeting.$loki;
+      const row = `
       <tr>
         <td>${meeting.title}</td>
         <td>${meeting.date}</td>
@@ -94,69 +91,110 @@ function loadMeetings() {
         </td>
       </tr>
     `;
-        meetingTableBody.insertAdjacentHTML('beforeend', row);
+      meetingTableBody.insertAdjacentHTML("beforeend", row);
     });
+  } catch (error) {
+    showAlert("Failed to load meetings.");
+    console.error(error);
+  }
 }
 
-// Create: Add a New meeting
-function createMeeting() {
-    if (!validateForm()) return;
+// Create a New meeting via API
+async function createMeeting() {
+  if (!validateForm()) return;
 
-    const newMeeting = {
-        id: Date.now(),
-        title: titleInput.value,
-        description: descriptionInput.value,
-        date: dateInput.value,
-        time: timeInput.value,
-        location: locationInput.value,
-        participants: participantsInput.value,
-        status: statusInput.value,
-        notes: notesInput.value
-    };
-    console.log("Saving new Meeting", newMeeting);
-    meetings.push(newMeeting);
-    resetForm();
-    loadMeetings();
-    hideAlert();
-}
+  const newMeeting = {
+    id: Date.now(),
+    title: titleInput.value,
+    description: descriptionInput.value,
+    date: dateInput.value,
+    time: timeInput.value,
+    location: locationInput.value,
+    participants: participantsInput.value,
+    status: statusInput.value,
+    notes: notesInput.value,
+  };
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newMeeting),
+    });
 
-// Update: Update Existing meeting
-function updateMeeting() {
-    if (!validateForm()) return;
-
-    const id = meetingIdHiddenInput.value;
-    const index = meetings.findIndex(meeting => meeting.id == id);
-
-    if (index !== -1) {
-        meetings[index] = {
-            id: id,
-            title: titleInput.value,
-            description: descriptionInput.value,
-            date: dateInput.value,
-            time: timeInput.value,
-            location: locationInput.value,
-            participants: participantsInput.value,
-            status: statusInput.value,
-            notes: notesInput.value
-        };
+    if (!response.ok) {
+      throw new Error("Failed to create meeting.");
     }
 
     resetForm();
     loadMeetings();
     hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
-// Delete: Remove a meeting
-function deleteMeeting(index) {
-    meetings.splice(index, 1);
+// Update Existing meeting via API
+async function updateMeeting() {
+  if (!validateForm()) return;
+
+  const id = meetingIdHiddenInput.value;
+  const updatedMeeting = {
+    title: titleInput.value,
+    description: descriptionInput.value,
+    date: dateInput.value,
+    time: timeInput.value,
+    location: locationInput.value,
+    participants: participantsInput.value,
+    status: statusInput.value,
+    notes: notesInput.value,
+  };
+  try {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedMeeting),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update meeting.");
+    }
+
+    resetForm();
     loadMeetings();
     hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
+}
+// Delete meeting via API
+async function deleteMeeting(id) {
+  if (!confirm("Are you sure you want to delete this meeting?")) return;
+
+  try {
+    const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete meeting.");
+    }
+
+    loadMeetings();
+    hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
-// Edit: Populate Form with meeting Data for Editing
-function editMeeting(index) {
-    const meeting = meetings[index];
-    console.log(meeting);
+// Edit Meeting: Fetch Data by ID and Populate Form
+async function editMeeting(id) {
+  try {
+    const response = await fetch(`${API_URL}/${id}`);
+    if (!response.ok) {
+      throw new Error("Failed to load meeting.");
+    }
+
+    const meeting = await response.json();
+    meeting.id = meeting.$loki;
+
     meetingIdHiddenInput.value = meeting.id;
     titleInput.value = meeting.title;
     descriptionInput.value = meeting.description;
@@ -165,34 +203,37 @@ function editMeeting(index) {
     locationInput.value = meeting.location;
     participantsInput.value = meeting.participants;
     statusInput.value = meeting.status;
-    notesInput.value = meeting.notes;
+    notesInput.value = meeting.notes || "";
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
 // Reset Form
 function resetForm() {
-    meetingIdHiddenInput.value = '';
-    titleInput.value = '';
-    descriptionInput.value = '';
-    dateInput.value = '';
-    timeInput.value = '';
-    locationInput.value = '';
-    participantsInput.value = '';
-    statusInput.value = '';
-    notesInput.value = '';
+  meetingIdHiddenInput.value = "";
+  titleInput.value = "";
+  descriptionInput.value = "";
+  dateInput.value = "";
+  timeInput.value = "";
+  locationInput.value = "";
+  participantsInput.value = "";
+  statusInput.value = "";
+  notesInput.value = "";
 
-    titleInput.classList.remove('input-error');
-    dateInput.classList.remove('input-error');
-    timeInput.classList.remove('input-error');
+  titleInput.classList.remove("input-error");
+  dateInput.classList.remove("input-error");
+  timeInput.classList.remove("input-error");
 }
 
 // Form Submission Handler
-meetingForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (meetingIdHiddenInput.value) {
-        updateMeeting();
-    } else {
-        createMeeting();
-    }
+meetingForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (meetingIdHiddenInput.value) {
+    updateMeeting();
+  } else {
+    createMeeting();
+  }
 });
 
 // Initial Load
