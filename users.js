@@ -1,81 +1,80 @@
 // user.js
-if (!localStorage.getItem('token')) {
-    window.location.href = "login.html";
+if (!localStorage.getItem("token")) {
+  window.location.href = "login.html";
 }
 
 // DOM Elements
-const userForm = document.getElementById('userForm');
-const userTableBody = document.getElementById('userTableBody');
-const userIdHiddenInput = document.getElementById('userId');
-const usernameInput = document.getElementById('username');
-const passwordInput = document.getElementById('password');
-const emailInput = document.getElementById('email');
-const roleInput = document.getElementById('role');
-// Alert Box
-const alertBox = document.getElementById('alertBox');
-const alertMessage = document.getElementById('alertMessage');
+const userForm = document.getElementById("userForm");
+const userTableBody = document.getElementById("userTableBody");
+const userIdHiddenInput = document.getElementById("userId");
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
+const emailInput = document.getElementById("email");
+const roleInput = document.getElementById("role");
+const alertBox = document.getElementById("alertBox");
+const alertMessage = document.getElementById("alertMessage");
 
-// State(like in memory db)
-let users = [];
+// Base API URL
+const API_URL = "http://localhost:3000/users";
 
 // Display Alert
 function showAlert(message) {
-    alertMessage.innerText = message;
-    alertBox.classList.remove('hidden');
+  alertMessage.innerText = message;
+  alertBox.classList.remove("hidden");
 }
 
 // Hide Alert
 function hideAlert() {
-    alertBox.classList.add('hidden');
-    alertMessage.innerText = '';
+  alertBox.classList.add("hidden");
+  alertMessage.innerText = "";
 }
 
 // Validation Function
 function validateForm() {
-    hideAlert(); // Clear previous alerts
-    let isValid = true;
-    let errors = [];
+  hideAlert();
+  let isValid = true;
+  let errors = [];
 
-    // Username is required
-    if (!usernameInput.value.trim()) {
-        isValid = false;
-        errors.push("Username is required. ");
-        usernameInput.classList.add('input-error');
-    } else {
-        usernameInput.classList.remove('input-error');
-    }
+  if (!usernameInput.value.trim()) {
+    isValid = false;
+    errors.push("Username is required. ");
+    usernameInput.classList.add("input-error");
+  } else {
+    usernameInput.classList.remove("input-error");
+  }
 
-    // Password is required
-    if (!passwordInput.value.trim() || !/^\d{10,15}$/.test(passwordInput.value)) {
-        isValid = false;
-        errors.push("Strong Password (10-15 digits) is required. ");
-        passwordInput.classList.add('input-error');
-    } else {
-        passwordInput.classList.remove('input-error');
-    }
+  if (!passwordInput.value.trim() || !/^\d{10,15}$/.test(passwordInput.value)) {
+    isValid = false;
+    errors.push("Strong Password (10-15 digits) is required. ");
+    passwordInput.classList.add("input-error");
+  } else {
+    passwordInput.classList.remove("input-error");
+  }
 
-    // Email is required
-    if (!emailInput.value.trim() || !/^\S+@\S+\.\S+$/.test(emailInput.value)) {
-        isValid = false;
-        errors.push("Valid Email is required.");
-        emailInput.classList.add('input-error');
-    } else {
-        emailInput.classList.remove('input-error');
-    }
+  if (!emailInput.value.trim() || !/^\S+@\S+\.\S+$/.test(emailInput.value)) {
+    isValid = false;
+    errors.push("Valid Email is required.");
+    emailInput.classList.add("input-error");
+  } else {
+    emailInput.classList.remove("input-error");
+  }
 
-    // Role has default value. Else use like roleInput.classList.add('select-error');
-    if (!isValid) {
-        showAlert(errors.join(' '));
-    }
+  if (!isValid) {
+    showAlert(errors.join(" "));
+  }
 
-    return isValid;
+  return isValid;
 }
 
-// Read: Load Users
-function loadUsers() {
-    userTableBody.innerHTML = '';
-    users.forEach((user, index) => {
-        const row = `
+// Load Users from API
+async function loadUsers() {
+  try {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    userTableBody.innerHTML = "";
+    data.forEach((user) => {
+      user.id = user.$loki;
+      const row = `
       <tr>
         <td>${user.username}</td>
         <td>${user.password}</td>
@@ -87,89 +86,134 @@ function loadUsers() {
         </td>
       </tr>
     `;
-        userTableBody.insertAdjacentHTML('beforeend', row);
+      userTableBody.insertAdjacentHTML("beforeend", row);
     });
+  } catch (error) {
+    showAlert("Failed to load groceries.");
+    console.error(error);
+  }
 }
 
-// Create: Add a New User
-function createUser() {
-    if (!validateForm()) return;
+// Create a New User via API
+async function createUser() {
+  if (!validateForm()) return;
 
-    const newUser = {
-        id: Date.now(),
-        username: usernameInput.value,
-        password: passwordInput.value,
-        email: emailInput.value,
-        role: roleInput.value,
-    };
-    console.log("Saving new user", newUser);
-    users.push(newUser);
-    resetForm();
-    loadUsers();
-    hideAlert();
-}
+  const newUser = {
+    id: Date.now(),
+    username: usernameInput.value,
+    password: passwordInput.value,
+    email: emailInput.value,
+    role: roleInput.value,
+  };
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newUser),
+    });
 
-// Update: Update Existing User
-function updateUser() {
-    if (!validateForm()) return;
-
-    const id = userIdHiddenInput.value;
-    const index = users.findIndex(user => user.id == id);
-
-    if (index !== -1) {
-        users[index] = {
-            id: id,
-            username: usernameInput.value,
-            password: passwordInput.value,
-            email: emailInput.value,
-            role: roleInput.value,
-        };
+    if (!response.ok) {
+      throw new Error("Failed to create users.");
     }
 
     resetForm();
     loadUsers();
     hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
-// Delete: Remove a User
-function deleteUser(index) {
-    users.splice(index, 1);
+// Update Existing User
+async function updateUser() {
+  if (!validateForm()) return;
+
+  const id = userIdHiddenInput.value;
+  const updatedUser = {
+    username: usernameInput.value,
+    password: passwordInput.value,
+    email: emailInput.value,
+    role: roleInput.value,
+  };
+  try {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedUser),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update users.");
+    }
+
+    resetForm();
     loadUsers();
     hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
-// Edit: Populate Form with User Data for Editing
-function editUser(index) {
-    const user = users[index];
-    console.log(user);
+// Delete User via API
+async function deleteUser(id) {
+  if (!confirm("Are you sure you want to delete this user?")) return;
+
+  try {
+    const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete user.");
+    }
+
+    loadUsers();
+    hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
+}
+
+// Edit user: Fetch Data by ID and Populate Form
+async function editUser(id) {
+  try {
+    const response = await fetch(`${API_URL}/${id}`);
+    if (!response.ok) {
+      throw new Error("Failed to load user.");
+    }
+
+    const user = await response.json();
+    user.id = user.$loki;
+
     userIdHiddenInput.value = user.id;
     usernameInput.value = user.username;
     passwordInput.value = user.password;
     emailInput.value = user.email;
     roleInput.value = user.role;
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
 // Reset Form
 function resetForm() {
-    userIdHiddenInput.value = '';
-    usernameInput.value = '';
-    passwordInput.value = '';
-    emailInput.value = '';
-    roleInput.value = '';
+  userIdHiddenInput.value = "";
+  usernameInput.value = "";
+  passwordInput.value = "";
+  emailInput.value = "";
+  roleInput.value = "";
 
-    usernameInput.classList.remove('input-error');
-    passwordInput.classList.remove('input-error');
-    emailInput.classList.remove('input-error');
+  usernameInput.classList.remove("input-error");
+  passwordInput.classList.remove("input-error");
+  emailInput.classList.remove("input-error");
 }
 
 // Form Submission Handler
-userForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (userIdHiddenInput.value) {
-        updateUser();
-    } else {
-        createUser();
-    }
+userForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (userIdHiddenInput.value) {
+    updateUser();
+  } else {
+    createUser();
+  }
 });
 
 // Initial Load
