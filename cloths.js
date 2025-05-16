@@ -19,7 +19,7 @@ const alertBox = document.getElementById("alertBox");
 const alertMessage = document.getElementById("alertMessage");
 
 // Base API URL
-const API_URL = "http://localhost:3000/contacts";
+const API_URL = "http://localhost:3000/cloths";
 
 // Display Alert
 function showAlert(message) {
@@ -191,8 +191,8 @@ async function editCloth(id) {
     materialInput.value = cloth.material;
     purchase_dateInput.value = cloth.purchase_date;
     priceInput.value = cloth.price;
-    catagoryInput.value = cloth.catagory || " ";
-    notesInput.value = cloth.notes || " ";
+    catagoryInput.value = cloth.catagory || "";
+    notesInput.value = cloth.notes || "";
   } catch (error) {
     showAlert(error.message);
   }
