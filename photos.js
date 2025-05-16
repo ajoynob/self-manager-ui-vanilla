@@ -1,64 +1,66 @@
 // photo.js
-if (!localStorage.getItem('token')) {
-    window.location.href = "login.html";
+if (!localStorage.getItem("token")) {
+  window.location.href = "login.html";
 }
 
 // DOM Elements
-const photoForm = document.getElementById('photoForm');
-const photoTableBody = document.getElementById('photoTableBody');
-const photoIdHiddenInput = document.getElementById('photoId');
-const titleInput = document.getElementById('title');
-const descriptionInput = document.getElementById('description');
-const urlInput = document.getElementById('url');
-const uploaded_byInput = document.getElementById('uploaded_by');
-const upload_dateInput = document.getElementById('upload_date');
-const albumInput = document.getElementById('album')
-// Alert Box
-const alertBox = document.getElementById('alertBox');
-const alertMessage = document.getElementById('alertMessage');
+const photoForm = document.getElementById("photoForm");
+const photoTableBody = document.getElementById("photoTableBody");
+const photoIdHiddenInput = document.getElementById("photoId");
+const titleInput = document.getElementById("title");
+const descriptionInput = document.getElementById("description");
+const urlInput = document.getElementById("url");
+const uploaded_byInput = document.getElementById("uploaded_by");
+const upload_dateInput = document.getElementById("upload_date");
+const albumInput = document.getElementById("album");
+const alertBox = document.getElementById("alertBox");
+const alertMessage = document.getElementById("alertMessage");
 
-// State(like in memory db)
-let photos = [];
+// Base API URL
+const API_URL = "http://localhost:3000/photos";
 
 // Display Alert
 function showAlert(message) {
-    alertMessage.innerText = message;
-    alertBox.classList.remove('hidden');
+  alertMessage.innerText = message;
+  alertBox.classList.remove("hidden");
 }
 
 // Hide Alert
 function hideAlert() {
-    alertBox.classList.add('hidden');
-    alertMessage.innerText = '';
+  alertBox.classList.add("hidden");
+  alertMessage.innerText = "";
 }
 
 // Validation Function
 function validateForm() {
-    hideAlert(); // Clear previous alerts
-    let isValid = true;
-    let errors = [];
+  hideAlert();
+  let isValid = true;
+  let errors = [];
 
-    // url is required
-    if (!urlInput.value.trim()) {
-        isValid = false;
-        errors.push("Valid url is required.");
-        urlInput.classList.add('input-error');
-    } else {
-        urlInput.classList.remove('input-error');
-    }
+  if (!urlInput.value.trim()) {
+    isValid = false;
+    errors.push("Valid url is required.");
+    urlInput.classList.add("input-error");
+  } else {
+    urlInput.classList.remove("input-error");
+  }
 
-    if (!isValid) {
-        showAlert(errors.join(' '));
-    }
+  if (!isValid) {
+    showAlert(errors.join(" "));
+  }
 
-    return isValid;
+  return isValid;
 }
 
-// Read: Load photos
-function loadPhotos() {
-    photoTableBody.innerHTML = '';
-    photos.forEach((photo, index) => {
-        const row = `
+// Load photos from API
+async function loadPhotos() {
+  try {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    photoTableBody.innerHTML = "";
+    data.forEach((photo) => {
+      photo.id = photo.$loki;
+      const row = `
       <tr>
         <td>${photo.title}</td>
         <td>${photo.description}</td>
@@ -71,65 +73,107 @@ function loadPhotos() {
         </td>
       </tr>
     `;
-        photoTableBody.insertAdjacentHTML('beforeend', row);
+      photoTableBody.insertAdjacentHTML("beforeend", row);
     });
+  } catch (error) {
+    showAlert("Failed to load groceries.");
+    console.error(error);
+  }
 }
 
-// Create: Add a New photo
-function createPhoto() {
-    if (!validateForm()) return;
+// Create a New photo via API
+async function createPhoto() {
+  if (!validateForm()) return;
 
-    const newPhoto = {
-        id: Date.now(),
-        title: titleInput.value,
-        description: descriptionInput.value,
-        url: urlInput.value,
-        uploaded_by: uploaded_byInput.value,
-        upload_date: upload_dateInput.value,
-        album: albumInput.value
-    };
-    console.log("Saving new photo", newPhoto);
-    photos.push(newPhoto);
-    resetForm();
-    loadPhotos();
-    hideAlert();
-}
+  const newPhoto = {
+    id: Date.now(),
+    title: titleInput.value,
+    description: descriptionInput.value,
+    url: urlInput.value,
+    uploaded_by: uploaded_byInput.value,
+    upload_date: upload_dateInput.value,
+    album: albumInput.value,
+  };
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newPhoto),
+    });
 
-// Update: Update Existing photo
-function updatePhoto() {
-    if (!validateForm()) return;
-
-    const id = photoIdHiddenInput.value;
-    const index = photos.findIndex(photo => photo.id == id);
-
-    if (index !== -1) {
-        photos[index] = {
-            id: id,
-            title: titleInput.value,
-            description: descriptionInput.value,
-            url: urlInput.value,
-            uploaded_by: uploaded_byInput.value,
-            upload_date: upload_dateInput.value,
-            album: albumInput.value
-        };
+    if (!response.ok) {
+      throw new Error("Failed to create photos.");
     }
 
     resetForm();
     loadPhotos();
     hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
-// Delete: Remove a photo
-function deletePhoto(index) {
-    photos.splice(index, 1);
+// Update Existing photo via API
+async function updatePhoto() {
+  if (!validateForm()) return;
+
+  const id = photoIdHiddenInput.value;
+  const updatedPhoto = {
+    title: titleInput.value,
+    description: descriptionInput.value,
+    url: urlInput.value,
+    uploaded_by: uploaded_byInput.value,
+    upload_date: upload_dateInput.value,
+    album: albumInput.value,
+  };
+  try {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedPhoto),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update photos.");
+    }
+
+    resetForm();
     loadPhotos();
     hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
-// Edit: Populate Form with photo Data for Editing
-function editPhoto(index) {
-    const photo = photos[index];
-    console.log(photo);
+// Delete photo via API
+async function deletePhoto(id) {
+  if (!confirm("Are you sure you want to delete this photo?")) return;
+
+  try {
+    const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete photo.");
+    }
+
+    loadPhotos();
+    hideAlert();
+  } catch (error) {
+    showAlert(error.message);
+  }
+}
+
+// Edit Photo: Fetch Data by ID and Populate Form
+async function editPhoto(id) {
+  try {
+    const response = await fetch(`${API_URL}/${id}`);
+    if (!response.ok) {
+      throw new Error("Failed to load photo.");
+    }
+
+    const photo = await response.json();
+    photo.id = photo.$loki;
+
     photoIdHiddenInput.value = photo.id;
     titleInput.value = photo.title;
     descriptionInput.value = photo.description;
@@ -137,29 +181,32 @@ function editPhoto(index) {
     uploaded_byInput.value = photo.uploaded_by;
     upload_dateInput.value = photo.upload_date;
     albumInput.value = photo.album;
+  } catch (error) {
+    showAlert(error.message);
+  }
 }
 
 // Reset Form
 function resetForm() {
-    photoIdHiddenInput.value = '';
-    titleInput.value = '';
-    descriptionInput.value = '';
-    urlInput.value = '';
-    uploaded_byInput.value = '';
-    upload_dateInput.value = '';
-    albumInput.value = '';
+  photoIdHiddenInput.value = "";
+  titleInput.value = "";
+  descriptionInput.value = "";
+  urlInput.value = "";
+  uploaded_byInput.value = "";
+  upload_dateInput.value = "";
+  albumInput.value = "";
 
-    urlInput.classList.remove('input-error');
+  urlInput.classList.remove("input-error");
 }
 
 // Form Submission Handler
-photoForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (photoIdHiddenInput.value) {
-        updatePhoto();
-    } else {
-        createPhoto();
-    }
+photoForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (photoIdHiddenInput.value) {
+    updatePhoto();
+  } else {
+    createPhoto();
+  }
 });
 
 // Initial Load
