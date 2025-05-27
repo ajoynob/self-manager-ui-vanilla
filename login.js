@@ -1,16 +1,12 @@
-// Users Array
-const users = [
-  { email: "user1@example.com", password: "password1", name: "User 1" },
-  { email: "user2@example.com", password: "password2", name: "User 2" },
-  { email: "user3@example.com", password: "password3", name: "User 3" },
-];
-
 // DOM Elements
 const loginForm = document.getElementById('loginForm');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const alertBox = document.getElementById('alertBox');
 const alertMessage = document.getElementById('alertMessage');
+
+// Base API URL
+const API_URL = "http://localhost:3000/login";
 
 // Show Alert
 function showAlert(message) {
@@ -24,41 +20,44 @@ function hideAlert() {
   alertMessage.innerText = '';
 }
 
-// Token generation & store in local storage
+// Save JWT token to localStorage
 function saveUserToken(token, name) {
   localStorage.setItem('token', token);
   localStorage.setItem('name', name);
 }
 
-function login() {
-  hideAlert(); // Clear any previous alerts
+// Login
+async function login() {
+  hideAlert();
 
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
 
-  // Find User
-  const user = users.find(u => u.email === email && u.password === password);
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (user) {
+    if (!res.ok) {
+      throw new Error("Invalid credentials");
+    }
+
+    const data = await res.json();
+    saveUserToken(data.token, data.name);
     alert("Login successful! Redirecting...");
-
-    // Save user token in local storage
-    let token = Math.random().toString(36).substring(2);
-    saveUserToken(token, user.name);
-
-    // Redirect to dashboard or another page here
     window.location.href = "contacts.html";
-  } else {
-    showAlert("Invalid credentials");
+  } catch (err) {
+    showAlert(err.message);
   }
 
-  // Clear input fields
   emailInput.value = '';
   passwordInput.value = '';
 }
 
-// Login Form Submission
+// Form Submit
 loginForm.addEventListener('submit', (e) => {
-  e.preventDefault(); // Prevent default form submission
-  login()
+  e.preventDefault();
+  login();
 });
