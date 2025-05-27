@@ -1,4 +1,3 @@
-// contact.js
 if (!localStorage.getItem('token')) {
     window.location.href = "login.html";
 }
@@ -19,7 +18,7 @@ const alertMessage = document.getElementById('alertMessage');
 // Base API URL
 const API_URL = 'http://localhost:3000/contacts';
 
-// Display Alert
+// Show Alert
 function showAlert(message) {
     alertMessage.innerText = message;
     alertBox.classList.remove('hidden');
@@ -31,7 +30,32 @@ function hideAlert() {
     alertMessage.innerText = '';
 }
 
-// Validation Function
+// Handle Unauthorized (401)
+function handle401() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("name");
+    window.location.href = "login.html";
+}
+
+// Global secure fetch with auth header + 401 check
+async function secureFetch(url, options = {}) {
+    const token = localStorage.getItem("token");
+    options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, options);
+
+    if (response.status === 401) {
+        handle401();
+    }
+
+    return response;
+}
+
+// Validate Form
 function validateForm() {
     hideAlert();
     let isValid = true;
@@ -68,11 +92,12 @@ function validateForm() {
     return isValid;
 }
 
-// Load Contacts from API
+// Load Contacts
 async function loadContacts() {
     try {
-        const response = await fetch(API_URL);
+        const response = await secureFetch(API_URL);
         const data = await response.json();
+
         contactTableBody.innerHTML = '';
 
         data.forEach(contact => {
@@ -97,7 +122,7 @@ async function loadContacts() {
     }
 }
 
-// Create New Contact via API
+// Create Contact
 async function createContact() {
     if (!validateForm()) return;
 
@@ -111,15 +136,12 @@ async function createContact() {
     };
 
     try {
-        const response = await fetch(API_URL, {
+        const response = await secureFetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newContact)
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to create contact.');
-        }
+        if (!response.ok) throw new Error('Failed to create contact.');
 
         resetForm();
         loadContacts();
@@ -129,7 +151,7 @@ async function createContact() {
     }
 }
 
-// Update Existing Contact via API
+// Update Contact
 async function updateContact() {
     if (!validateForm()) return;
 
@@ -144,15 +166,12 @@ async function updateContact() {
     };
 
     try {
-        const response = await fetch(`${API_URL}/${id}`, {
+        const response = await secureFetch(`${API_URL}/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedContact)
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to update contact.');
-        }
+        if (!response.ok) throw new Error('Failed to update contact.');
 
         resetForm();
         loadContacts();
@@ -162,16 +181,16 @@ async function updateContact() {
     }
 }
 
-// Delete Contact via API
+// Delete Contact
 async function deleteContact(id) {
     if (!confirm('Are you sure you want to delete this contact?')) return;
 
     try {
-        const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        const response = await secureFetch(`${API_URL}/${id}`, {
+            method: 'DELETE'
+        });
 
-        if (!response.ok) {
-            throw new Error('Failed to delete contact.');
-        }
+        if (!response.ok) throw new Error('Failed to delete contact.');
 
         loadContacts();
         hideAlert();
@@ -180,13 +199,11 @@ async function deleteContact(id) {
     }
 }
 
-// Edit Contact: Fetch Data by ID and Populate Form
+// Edit Contact
 async function editContact(id) {
     try {
-        const response = await fetch(`${API_URL}/${id}`);
-        if (!response.ok) {
-            throw new Error('Failed to load contact.');
-        }
+        const response = await secureFetch(`${API_URL}/${id}`);
+        if (!response.ok) throw new Error('Failed to load contact.');
 
         const contact = await response.json();
         contact.id = contact.$loki;
@@ -218,7 +235,7 @@ function resetForm() {
     emailInput.classList.remove('input-error');
 }
 
-// Form Submission Handler
+// Form Submit Handler
 contactForm.addEventListener('submit', (e) => {
     e.preventDefault();
     if (contactIdHiddenInput.value) {
