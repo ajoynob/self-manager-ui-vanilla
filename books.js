@@ -1,4 +1,3 @@
-// books.js
 if (!localStorage.getItem("token")) {
   window.location.href = "login.html";
 }
@@ -29,6 +28,31 @@ function showAlert(message) {
 function hideAlert() {
   alertBox.classList.add("hidden");
   alertMessage.innerText = "";
+}
+
+// Handle Unauthorized (401)
+function handle401() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("name");
+    window.location.href = "login.html";
+}
+
+// Global secure fetch with auth header + 401 check
+async function secureFetch(url, options = {}) {
+    const token = localStorage.getItem("token");
+    options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, options);
+
+    if (response.status === 401) {
+        handle401();
+    }
+
+    return response;
 }
 
 // Validation Function
@@ -70,7 +94,7 @@ function validateForm() {
 // Load Books from API
 async function loadBooks() {
   try {
-    const response = await fetch(API_URL);
+    const response = await secureFetch(API_URL);
     const data = await response.json();
     booksTableBody.innerHTML = "";
     data.forEach((book) => {
@@ -110,9 +134,8 @@ async function createBook() {
     notes: notesInput.value,
   };
   try {
-    const response = await fetch(API_URL, {
+    const response = await secureFetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newBook),
     });
 
@@ -143,9 +166,8 @@ async function updateBook() {
   };
 
   try {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await secureFetch(`${API_URL}/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updatedBook),
     });
 
@@ -166,7 +188,7 @@ async function deleteBook(id) {
   if (!confirm("Are you sure you want to delete this book?")) return;
 
   try {
-    const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    const response = await secureFetch(`${API_URL}/${id}`, { method: "DELETE" });
 
     if (!response.ok) {
       throw new Error("Failed to delete book.");
@@ -182,7 +204,7 @@ async function deleteBook(id) {
 // Edit Book: Fetch Data by ID and Populate Form
 async function editBook(id) {
   try {
-    const response = await fetch(`${API_URL}/${id}`);
+    const response = await secureFetch(`${API_URL}/${id}`);
     if (!response.ok) {
       throw new Error("Failed to load book.");
     }
