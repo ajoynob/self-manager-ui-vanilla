@@ -1,4 +1,3 @@
-// cloths.js
 if (!localStorage.getItem("token")) {
   window.location.href = "login.html";
 }
@@ -21,7 +20,7 @@ const alertMessage = document.getElementById("alertMessage");
 // Base API URL
 const API_URL = "http://localhost:3000/cloths";
 
-// Display Alert
+// Show Alert
 function showAlert(message) {
   alertMessage.innerText = message;
   alertBox.classList.remove("hidden");
@@ -31,6 +30,31 @@ function showAlert(message) {
 function hideAlert() {
   alertBox.classList.add("hidden");
   alertMessage.innerText = "";
+}
+
+// Handle Unauthorized (401)
+function handle401() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("name");
+    window.location.href = "login.html";
+}
+
+// Global secure fetch with auth header + 401 check
+async function secureFetch(url, options = {}) {
+    const token = localStorage.getItem("token");
+    options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, options);
+
+    if (response.status === 401) {
+        handle401();
+    }
+
+    return response;
 }
 
 // Validation Function
@@ -57,7 +81,7 @@ function validateForm() {
 // Load Contacts from API
 async function loadCloths() {
   try {
-    const response = await fetch(API_URL);
+    const response = await secureFetch(API_URL);
     const data = await response.json();
     clothTableBody.innerHTML = "";
 
@@ -102,9 +126,8 @@ async function createCloth() {
   };
 
   try {
-    const response = await fetch(API_URL, {
+    const response = await secureFetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newCloth),
     });
 
@@ -137,9 +160,8 @@ async function updateCloth() {
   };
 
   try {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await secureFetch(`${API_URL}/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updatedCloth),
     });
 
@@ -160,7 +182,7 @@ async function deleteCloth(id) {
   if (!confirm("Are you sure you want to delete this cloth?")) return;
 
   try {
-    const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    const response = await secureFetch(`${API_URL}/${id}`, { method: "DELETE" });
 
     if (!response.ok) {
       throw new Error("Failed to delete cloth.");
@@ -176,7 +198,7 @@ async function deleteCloth(id) {
 // Edit cloth: Fetch Data by ID and Populate Form
 async function editCloth(id) {
   try {
-    const response = await fetch(`${API_URL}/${id}`);
+    const response = await secureFetch(`${API_URL}/${id}`);
     if (!response.ok) {
       throw new Error("Failed to load cloth.");
     }
