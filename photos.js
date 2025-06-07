@@ -1,4 +1,3 @@
-// photo.js
 if (!localStorage.getItem("token")) {
   window.location.href = "login.html";
 }
@@ -31,6 +30,31 @@ function hideAlert() {
   alertMessage.innerText = "";
 }
 
+// Handle Unauthorized (401)
+function handle401() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("name");
+    window.location.href = "login.html";
+}
+
+// Global secure fetch with auth header + 401 check
+async function secureFetch(url, options = {}) {
+    const token = localStorage.getItem("token");
+    options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, options);
+
+    if (response.status === 401) {
+        handle401();
+    }
+
+    return response;
+}
+
 // Validation Function
 function validateForm() {
   hideAlert();
@@ -55,7 +79,7 @@ function validateForm() {
 // Load photos from API
 async function loadPhotos() {
   try {
-    const response = await fetch(API_URL);
+    const response = await secureFetch(API_URL);
     const data = await response.json();
     photoTableBody.innerHTML = "";
     data.forEach((photo) => {
@@ -95,9 +119,8 @@ async function createPhoto() {
     album: albumInput.value,
   };
   try {
-    const response = await fetch(API_URL, {
+    const response = await secureFetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newPhoto),
     });
 
@@ -127,9 +150,8 @@ async function updatePhoto() {
     album: albumInput.value,
   };
   try {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await secureFetch(`${API_URL}/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updatedPhoto),
     });
 
@@ -150,7 +172,7 @@ async function deletePhoto(id) {
   if (!confirm("Are you sure you want to delete this photo?")) return;
 
   try {
-    const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    const response = await secureFetch(`${API_URL}/${id}`, { method: "DELETE" });
 
     if (!response.ok) {
       throw new Error("Failed to delete photo.");
@@ -166,7 +188,7 @@ async function deletePhoto(id) {
 // Edit Photo: Fetch Data by ID and Populate Form
 async function editPhoto(id) {
   try {
-    const response = await fetch(`${API_URL}/${id}`);
+    const response = await secureFetch(`${API_URL}/${id}`);
     if (!response.ok) {
       throw new Error("Failed to load photo.");
     }
