@@ -1,4 +1,3 @@
-// medicine.js
 if (!localStorage.getItem("token")) {
   window.location.href = "login.html";
 }
@@ -30,6 +29,31 @@ function showAlert(message) {
 function hideAlert() {
   alertBox.classList.add("hidden");
   alertMessage.innerText = "";
+}
+
+// Handle Unauthorized (401)
+function handle401() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("name");
+    window.location.href = "login.html";
+}
+
+// Global secure fetch with auth header + 401 check
+async function secureFetch(url, options = {}) {
+    const token = localStorage.getItem("token");
+    options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, options);
+
+    if (response.status === 401) {
+        handle401();
+    }
+
+    return response;
 }
 
 // Validation Function
@@ -72,7 +96,7 @@ function validateForm() {
 // Load medicines from API
 async function loadMedicines() {
   try {
-    const response = await fetch(API_URL);
+    const response = await secureFetch(API_URL);
     const data = await response.json();
     medicineTableBody.innerHTML = "";
     data.forEach((medicine) => {
@@ -114,9 +138,8 @@ async function createMedicine() {
     notes: notesInput.value,
   };
   try {
-    const response = await fetch(API_URL, {
+    const response = await secureFetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newMedicine),
     });
 
@@ -147,9 +170,8 @@ async function updateMedicine() {
     notes: notesInput.value,
   };
   try {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await secureFetch(`${API_URL}/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updatedMedicine),
     });
 
@@ -170,7 +192,7 @@ async function deleteMedicine(id) {
   if (!confirm("Are you sure you want to delete this medicine?")) return;
 
   try {
-    const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    const response = await secureFetch(`${API_URL}/${id}`, { method: "DELETE" });
 
     if (!response.ok) {
       throw new Error("Failed to delete medicine.");
@@ -186,7 +208,7 @@ async function deleteMedicine(id) {
 // Edit Medicine: Fetch Data by ID and Populate Form
 async function editMedicine(id) {
   try {
-    const response = await fetch(`${API_URL}/${id}`);
+    const response = await secureFetch(`${API_URL}/${id}`);
     if (!response.ok) {
       throw new Error("Failed to load medicine.");
     }
