@@ -1,4 +1,3 @@
-// inventory.js
 if (!localStorage.getItem("token")) {
   window.location.href = "login.html";
 }
@@ -32,6 +31,31 @@ function showAlert(message) {
 function hideAlert() {
   alertBox.classList.add("hidden");
   alertMessage.innerText = "";
+}
+
+// Handle Unauthorized (401)
+function handle401() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("name");
+    window.location.href = "login.html";
+}
+
+// Global secure fetch with auth header + 401 check
+async function secureFetch(url, options = {}) {
+    const token = localStorage.getItem("token");
+    options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, options);
+
+    if (response.status === 401) {
+        handle401();
+    }
+
+    return response;
 }
 
 // Validation Function
@@ -74,7 +98,7 @@ function validateForm() {
 // Load inventorys from API
 async function loadInventory() {
   try {
-    const response = await fetch(API_URL);
+    const response = await secureFetch(API_URL);
     const data = await response.json();
     inventoryTableBody.innerHTML = "";
     data.forEach((inventory) => {
@@ -118,9 +142,8 @@ async function createInventory() {
     location: locationInput.value,
   };
   try {
-    const response = await fetch(API_URL, {
+    const response = await secureFetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newInventory),
     });
 
@@ -153,9 +176,8 @@ async function updateInventory() {
     location: locationInput.value,
   };
   try {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await secureFetch(`${API_URL}/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updatedInventory),
     });
 
@@ -176,7 +198,7 @@ async function deleteInventory(id) {
   if (!confirm("Are you sure you want to delete this inventory?")) return;
 
   try {
-    const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    const response = await secureFetch(`${API_URL}/${id}`, { method: "DELETE" });
 
     if (!response.ok) {
       throw new Error("Failed to delete inventory.");
@@ -192,7 +214,7 @@ async function deleteInventory(id) {
 // Edit Inventory: Fetch Data by ID and Populate Form
 async function editInventory(id) {
   try {
-    const response = await fetch(`${API_URL}/${id}`);
+    const response = await secureFetch(`${API_URL}/${id}`);
     if (!response.ok) {
       throw new Error("Failed to load inventory.");
     }
